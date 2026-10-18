@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>山西扣点 · 牌理练习器</title>
+<style>
+:root{--bg:#f7f5f0;--card:#fff;--line:#e4dfd3;--txt:#2a2a31;--mut:#71717a;--accent:#0e7a68;--warn:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.65 system-ui,"Microsoft YaHei","PingFang SC",sans-serif}
+.wrap{max-width:780px;margin:0 auto;padding:14px 14px 40px}
+h1{font-size:19px;margin:6px 0 2px}
+.sub{color:var(--mut);font-size:12.5px;margin:0 0 10px}
+.tabs{display:flex;gap:8px;margin:10px 0}
+.tabs button{flex:1;padding:9px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:15px;cursor:pointer}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin:9px 0}
+.hand{min-height:52px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.empty{color:#b9b4a8;font-size:13px}
+.chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:7px;background:#faf8f3;border:1px solid var(--line);font-weight:700;cursor:pointer;user-select:none;font-size:15px}
+.row{display:flex;align-items:center;gap:5px;margin:5px 0;flex-wrap:wrap}
+.row .lbl{width:26px;color:var(--mut);font-size:12px;flex:none}
+.pick button{min-width:33px;padding:5px 5px;border-radius:7px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:14px;font-weight:600}
+.pick button:disabled{opacity:.22;cursor:default}
+.chip.m,.tile.m,.pick button.m{color:#b3261e}
+.chip.p,.tile.p,.pick button.p{color:#1d5fb4}
+.chip.s,.tile.s,.pick button.s{color:#0e7b3f}
+.chip.z,.tile.z,.pick button.z{color:#6a4dbf}
+.btnrow{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+button.ghost{padding:7px 12px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer}
+button.primary{flex:1;min-width:150px;padding:12px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+input[type=text]{flex:1;min-width:170px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:14px}
+.small{font-size:12.5px;color:var(--mut)}
+.warn{color:var(--warn);font-weight:600}
+.tile{display:inline-block;padding:1px 7px;border-radius:6px;background:#f4f1e9;border:1px solid var(--line);margin:2px 4px 2px 0;font-weight:700;font-size:13.5px}
+.tile.ron{border-color:#0e7b3f;background:#e9f6ef}
+.tile.tsumo{border-color:#c58a00;background:#fcf3dc}
+.tile.dead{border-color:#b3261e;background:#fdebe9;color:#b3261e;text-decoration:line-through}
+.rescard{border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin:8px 0;background:#fff}
+.rescard.best{border-color:var(--accent);box-shadow:0 0 0 2px rgba(14,122,104,.13)}
+.rescard h3{margin:0 0 4px;font-size:15px}
+ol.rank{margin:6px 0;padding-left:22px}
+ol.rank li{margin:9px 0}
+details{font-size:13px;color:#565660;margin-top:14px}
+details summary{cursor:pointer;font-weight:600;color:var(--txt)}
+footer{font-size:12px;color:#96939b;margin-top:18px;line-height:1.5}
+.k{font-weight:700}
+.prow{border:1px solid var(--line);border-radius:9px;padding:6px 9px;margin:6px 0;background:#fff}
+.prow.you{border-color:var(--accent);box-shadow:0 0 0 2px rgba(14,122,104,.13)}
+.prow .plabel{font-weight:700;margin-bottom:1px}
+.badge{display:inline-block;background:var(--accent);color:#fff;border-radius:5px;padding:0 5px;font-size:11px;vertical-align:1px}
+.river{margin-top:3px;line-height:1.8}
+.river .tile{font-size:12px;padding:0 5px;margin:1px 2px 1px 0}
+.logbox{background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-size:12.5px;max-height:200px;overflow-y:auto;margin:8px 0}
+.logline{padding:2px 0;border-bottom:1px dashed #f0ece2}
+.logline:last-child{border-bottom:0}
+.prompt{border:1px solid #c58a00;background:#fcf3dc;border-radius:9px;padding:8px 12px;margin:8px 0}
+.chip.pickable{border-color:var(--accent)}
+.chip.danger{border-color:var(--warn);background:#fdebe9;color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🀄 山西扣点 · 牌理练习器</h1>
+  <p class="sub">手动输入 + 单机 AI 对战 · 练习与复盘 · 已按扣点规则计算（1/2 点不能胡、3~5 点仅自摸、听口须含 6 点以上才能报听）· 未含耗子/风嘴子</p>
+
+  <div class="tabs">
+    <button id="tabA" class="on">分析</button>
+    <button id="tabB">练习</button>
+    <button id="tabC">对战</button>
+  </div>
+
+  <!-- ============ 分析 ============ -->
+  <section id="panelA">
+    <div class="card">
+      <div class="row">
+        <span class="lbl">副露</span>
+        <select id="meldsSel">
+          <option value="0" selected>0 副（门清）</option>
+          <option value="1">1 副（碰/杠）</option>
+          <option value="2">2 副</option>
+          <option value="3">3 副</option>
+          <option value="4">4 副</option>
+        </select>
+        <span class="small" id="sizeHint"></span>
+      </div>
+      <div class="hand" id="handA"><span class="empty">点下方牌面选牌，或粘贴记法后点"解析"</span></div>
+      <div class="pick" id="picker"></div>
+      <div class="btnrow">
+        <input type="text" id="notation" placeholder="记法示例：123456789m 234p 55s（m万 p筒 s条 z字牌）">
+        <button class="ghost" id="parseBtn">解析</button>
+        <button class="ghost" id="undoBtn">撤回</button>
+        <button class="ghost" id="clearBtn">清空</button>
+      </div>
+      <button class="primary" id="analyzeBtn">分析 · 推荐打哪张</button>
+    </div>
+    <div class="out" id="outA"></div>
+  </section>
+
+  <!-- ============ 练习 ============ -->
+  <section id="panelB" hidden>
+    <div class="card">
+      <div class="btnrow">
+        <button class="primary" id="dealBtn">发一手牌（随机）</button>
+        <button class="ghost" id="nextBtn" disabled>下一手</button>
+      </div>
+      <p class="small">场景：你刚摸完一张、要打一张。点你手里想打的那张牌，看看和推荐是否一致。</p>
+      <div class="hand" id="handB"><span class="empty">点"发一手牌"开始</span></div>
+      <p class="small" id="scoreB"></p>
+    </div>
+    <div class="out" id="outB"></div>
+  </section>
+
+  <!-- ============ 对战 ============ -->
+  <section id="panelC" hidden>
+    <div class="card">
+      <div class="btnrow">
+        <select id="simMode">
+          <option value="play" selected>我上桌（坐东家 vs 3 个 AI）</option>
+          <option value="watch">观战（4 个 AI 自动打）</option>
+        </select>
+        <button class="primary" id="simNew" style="flex:0 1 auto">新开一局</button>
+        <button class="ghost" id="simSpeed">速度：正常</button>
+        <button class="ghost" id="simBatchBtn">连跑 20 局（看各 AI 战绩）</button>
+      </div>
+      <p class="small">对手 AI 有三种风格：牌效型（最大进张）、防守型/平衡型（有玩家报听时避开其点炮听口）。每张牌都写明理由；你出牌前可以点「看看提示」对照。报听自动触发、报听后锁手（摸啥打啥）；有玩家报听时，你手里会点炮的牌标红框。</p>
+      <p class="small" id="simStat"></p>
+      <p class="small" id="simBatch"></p>
+    </div>
+    <div class="out" id="simBoard"><p class="small">点「新开一局」开始。先别急着出牌——想好打哪张，再看提示和 AI 的选择对比，进步最快。</p></div>
+  </section>
+
+  <details>
+    <summary>它怎么算的？支持哪些规则？（点开看）</summary>
+    <p><b>记法：</b>m=万、p=筒、s=条、z=字牌（1z东 2z南 3z西 4z北 5z中 6z发 7z白）。也支持直接写"3万 5筒 东"。</p>
+    <p><b>规则依据（山西扣点/扣点点）：</b>136 张；可碰杠不可吃；必须报听才能胡；点数＝数牌面值、风字牌 10 点；1~2 点不能胡；3~5 点只能自摸；6 点及以上可自摸可点炮；报听要求听口包含 6 点及以上的牌（否则"听牌"也无法报听、无法胡）。和牌牌型：4 面子+1 将 或 七小对。</p>
+    <p><b>推荐排序口径：</b>① 能直接进入"可报听的听牌"最优先；② 死听（听口全在 6 点以下）排在其后、普通一向听之前——它本身胡不了，但形状已是"差一张"，通常比拆牌重做更快接近成牌（列表里用红色标出并说明）；③ 同档内比可胡剩余张数（1~2 点听口永远胡不了，不计入），再比可点炮听口数量。两类判断接近时（如死听 vs 进张很多的一向听），建议自己也对照进张数取舍。</p>
+    <p><b>未计入：</b>对手弃牌与点炮风险、包胡、打点与番型倾向（清一色/一条龙等）、耗子（万能牌）、风嘴子、摸五胡六等房间开关。剩余张数按"未见牌=4 张"估算，未扣场上可见牌。仅自摸的听口按正常权重参与排序（实际比可点炮听口略低）。</p>
+    <p><b>为什么专门做扣点：</b>因为"1、2 点不能胡 / 3~5 点仅自摸 / 听口须含 6 点以上才能报听"这几条，会让不少在普通工具里显示"已听牌"的牌型，在扣点里其实是死听（无效听）——本工具会直接标出来。</p>
+    <p><b>对战页（v1 简化）：</b>到达"可报听的听牌"自动报听；报听后锁手（摸啥打啥、不能再碰）。不实现杠；不算番/点；流局＝牌墙摸完；多家可点炮时按出牌者下家顺序最近一家胡（无一炮多响）。AI 三种风格：牌效型＝最大进张；防守型＝有玩家报听时尽量避开其点炮听口（最多降一档）；平衡型＝只在同档内避。防守只看公开的报听听口（扣点报听明示），不偷看未报听玩家的手牌。「连跑 20 局」＝同一牌桌连打 20 局比各风格战绩。</p>
+  </details>
+
+  <footer>手动输入 / 单机对战，用于练习与复盘。不读屏、不连接游戏、无实时提示。规则按通用扣点点；具体房间开关不同时以游戏内为准。</footer>
+</div>
+
+<script src="engine.js"></script>
+<script src="sim.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var T = 34;
+  var SUITS = [['m', '万'], ['p', '筒'], ['s', '条']];
+  var hand = new Array(T).fill(0);
+  var melds = 0;
+  var hist = [];
+
+  function suitOf(i) { return i < 27 ? 'mps'[(i / 9) | 0] : 'z'; }
+  function handSize() { return hand.reduce(function (a, b) { return a + b; }, 0); }
+  function expectedSize() { return 14 - 3 * melds; }
+
+  /* ---------- 分析页：输入 ---------- */
+  function renderHand() {
+    var el = $('handA');
+    el.innerHTML = '';
+    if (handSize() === 0) {
+      el.innerHTML = '<span class="empty">点下方牌面选牌，或粘贴记法后点"解析"</span>';
+    } else {
+      for (var i = 0; i < T; i++) {
+        for (var k = 0; k < hand[i]; k++) {
+          (function (i) {
+            var c = document.createElement('span');
+            c.className = 'chip ' + suitOf(i);
+            c.textContent = KD.tileName(i);
+            c.title = '点击移除';
+            c.onclick = function () {
+              hand[i]--;
+              var p = hist.lastIndexOf(i);
+              if (p >= 0) hist.splice(p, 1);
+              renderHand(); renderPicker();
+            };
+            el.appendChild(c);
+          })(i);
+        }
+      }
+    }
+    updateHint();
+  }
+  function updateHint() {
+    var s = handSize(), ex = expectedSize();
+    var h = '当前 ' + s + ' 张';
+    if (s === ex) h += '（摸牌后）→ 可点"分析"';
+    else if (s === ex - 1) h += '（未摸牌）→ 可看牌情';
+    else h += '；副露 ' + melds + ' 副时应为 ' + ex + ' 或 ' + (ex - 1) + ' 张';
+    $('sizeHint').textContent = h;
+  }
+  function pickBtn(i, cls) {
+    var b = document.createElement('button');
+    b.className = cls;
+    b.textContent = KD.tileName(i);
+    b.disabled = hand[i] >= 4;
+    b.onclick = function () {
+      if (handSize() >= expectedSize()) return;
+      hand[i]++; hist.push(i);
+      renderHand(); renderPicker();
+    };
+    return b;
+  }
+  function renderPicker() {
+    var el = $('picker');
+    el.innerHTML = '';
+    SUITS.forEach(function (s) {
+      var row = document.createElement('div');
+      row.className = 'row';
+      var lb = document.createElement('span');
+      lb.className = 'lbl'; lb.textContent = s[1];
+      row.appendChild(lb);
+      for (var d = 1; d <= 9; d++) row.appendChild(pickBtn((s[0] === 'm' ? 0 : s[0] === 'p' ? 9 : 18) + d - 1, s[0]));
+      el.appendChild(row);
+    });
+    var row = document.createElement('div');
+    row.className = 'row';
+    var lb = document.createElement('span');
+    lb.className = 'lbl'; lb.textContent = '字';
+    row.appendChild(lb);
+    for (var d = 0; d < 7; d++) row.appendChild(pickBtn(27 + d, 'z'));
+    el.appendChild(row);
+  }
+
+  /* ---------- 分析页：结果 ---------- */
+  function tileChip(i, remain) {
+    return '<span class="tile ' + suitOf(i) + '">' + KD.tileName(i) +
+      (remain < 4 ? '<span class="small">×' + remain + '</span>' : '') + '</span>';
+  }
+  function waitChip(w, forceDead) {
+    var mode = forceDead ? 'dead' : w.mode;
+    var cls = mode === 'ron' ? 'ron' : mode === 'tsumo' ? 'tsumo' : 'dead';
+    var tag = mode === 'ron' ? '可点炮' : mode === 'tsumo' ? '仅自摸' : '不能胡';
+    return '<span class="tile ' + suitOf(w.tile) + ' ' + cls + '" title="' + tag + '">' +
+      KD.tileName(w.tile) + ' <span class="small">' + w.pts + '点·' + tag + '</span></span>';
+  }
+  function descShort(d) {
+    if (d.shanten === 0) return d.canDeclare ? '听牌（可胡剩' + d.effTotal + '张）' : '死听（暂不能报听）';
+    return d.shanten + '向听（' + d.effTotal + '张进张）';
+  }
+  function itemHtml(d) {
+    var s2 = '<b>打 ' + KD.tileName(d.tile) + '</b> —— ';
+    if (d.shanten === 0) {
+      if (d.canDeclare) {
+        s2 += '<b style="color:var(--accent)">直接听牌</b>，听口：' + d.waits.map(waitChip).join('') +
+          '<div class="small">可报听 ✓ · 可胡剩余 ' + d.effTotal + ' 张</div>';
+      } else {
+        s2 += '<span class="warn">⚠ 死听</span>：' + d.waits.map(function (w) { return waitChip(w, true); }).join('') +
+          '<div class="small warn">听口都在 6 点以下 → 暂时不能报听、不能胡；这是"差一张"的形状，继续摸牌就有机会换出可报听的听口（拆不拆，可对照候选进张数取舍）</div>';
+      }
+    } else {
+      s2 += d.shanten + ' 向听，有效进张 <b>' + d.effTotal + '</b> 张（' + d.eff.list.length + ' 种）' +
+        '<div class="small">' + d.eff.list.slice(0, 18).map(function (x) { return tileChip(x.tile, x.remain); }).join('') +
+        (d.eff.list.length > 18 ? '…' : '') + '</div>';
+    }
+    return s2;
+  }
+  function renderRecommend(res) {
+    var out = $('outA');
+    if (res.error) { out.innerHTML = '<p class="warn">' + res.error + '</p>'; return; }
+    var ds = res.discards;
+    var top = ds[0], second = ds[1];
+    var note = descShort(top);
+    if (second && second.tier === top.tier) {
+      if (top.effTotal > second.effTotal) {
+        note += '，比次优（打' + KD.tileName(second.tile) + '，' + second.effTotal + '张）多 ' + (top.effTotal - second.effTotal) + ' 张';
+      } else if (top.effTotal === second.effTotal) {
+        note += '（与打' + KD.tileName(second.tile) + '并列' + (top.ronCount > second.ronCount ? '，但点炮口更多' : '') + '）';
+      }
+    }
+    if (top.shanten === 0 && !top.canDeclare) {
+      note += '｜⚠ 死听：暂时不能报听、不能胡。排最前是按"离成牌最近"判断——只差一次换张，但不保证最优；可对照下面各位次的进张数自行取舍。';
+    }
+    var html = '<div class="rescard best"><h3>推荐：打 ' + KD.tileName(top.tile) + '</h3><p class="small">' + note + '</p></div>';
+    html += '<div class="rescard"><h3>全部候选（按推荐度排序）</h3><ol class="rank">';
+    ds.forEach(function (d) { html += '<li>' + itemHtml(d) + '</li>'; });
+    html += '</ol><p class="small">图例：<b>绿=可点炮 / 黄=仅自摸 / 红=不能胡（划掉）</b>；剩余张数按未见牌=4 张估算。</p></div>';
+    out.innerHTML = html;
+  }
+  function renderStatus(res) {
+    var out = $('outA');
+    var html = '';
+    if (res.shanten === 0) {
+      html += '<div class="rescard"><h3>' + (res.canDeclare ? '已听牌' : '已听牌形（死听）') + '</h3><p>' + res.waits.map(function (w) { return waitChip(w, !res.canDeclare); }).join('') + '</p>';
+      html += res.canDeclare
+        ? '<p class="small">可以报听 ✓（注意：报听之后不能换牌，是否报听还要看听口质量）。可胡剩余 ' + res.effTotal + ' 张。</p>'
+        : '<p class="warn">死听：听口都在 6 点以下 → 不能报听、不能胡，需要换听口（摸牌后再点"分析"，看怎么换出能报听的听口）。</p>';
+    } else {
+      html += '<div class="rescard"><h3>' + res.shanten + ' 向听</h3><p>有效进张 <b>' + res.eff.total +
+        '</b> 张（' + res.eff.list.length + ' 种）：</p><p>' +
+        res.eff.list.slice(0, 24).map(function (x) { return tileChip(x.tile, x.remain); }).join('') + '</p>' +
+        '<p class="small">摸牌后（' + (res.size + 1) + ' 张）再点"分析"，会给出打哪张的排序。</p>';
+    }
+    html += '<p class="small">剩余张数按未见牌=4 张估算，未扣场上可见牌。</p></div>';
+    out.innerHTML = html;
+  }
+  $('analyzeBtn').onclick = function () {
+    var s = handSize(), ex = expectedSize();
+    var out = $('outA');
+    if (s !== ex && s !== ex - 1) {
+      out.innerHTML = '<p class="warn">张数不对：副露 ' + melds + ' 副时，应为 ' + ex + ' 张（摸牌后）或 ' + (ex - 1) + ' 张（未摸牌），当前 ' + s + ' 张。</p>';
+      return;
+    }
+    out.innerHTML = '<p class="small">分析中…</p>';
+    setTimeout(function () {
+      try {
+        if (s === ex) renderRecommend(KD.recommend(hand, melds));
+        else renderStatus(KD.analyze(hand, melds));
+      } catch (e) {
+        out.innerHTML = '<p class="warn">出错了：' + e.message + '</p>';
+      }
+    }, 20);
+  };
+
+  /* ---------- 分析页：按钮 ---------- */
+  $('undoBtn').onclick = function () {
+    var i = hist.pop();
+    if (i !== undefined && hand[i] > 0) hand[i]--;
+    renderHand(); renderPicker();
+  };
+  $('clearBtn').onclick = function () {
+    hand = new Array(T).fill(0); hist = [];
+    renderHand(); renderPicker(); $('outA').innerHTML = '';
+  };
+  $('parseBtn').onclick = function () {
+    var p = KD.parseNotation($('notation').value);
+    if (p.error) { $('outA').innerHTML = '<p class="warn">' + p.error + '</p>'; return; }
+    hand = p.counts.slice(); hist = [];
+    renderHand(); renderPicker(); $('outA').innerHTML = '';
+  };
+  $('notation').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('parseBtn').click(); });
+  $('meldsSel').onchange = function (e) {
+    melds = +e.target.value;
+    updateHint(); $('outA').innerHTML = '';
+  };
+
+  /* ---------- 练习页 ---------- */
+  var prac = null, pracDone = true, stat = { t: 0, ok: 0 };
+  function deal() {
+    prac = new Array(T).fill(0);
+    var pool = [];
+    for (var i = 0; i < T; i++) pool.push(i, i, i, i);
+    for (var j = pool.length - 1; j > 0; j--) {
+      var r = Math.floor(Math.random() * (j + 1));
+      var tmp = pool[j]; pool[j] = pool[r]; pool[r] = tmp;
+    }
+    for (var k = 0; k < 14; k++) prac[pool[k]]++;
+    pracDone = false;
+    $('nextBtn').disabled = true;
+    $('outB').innerHTML = '';
+    renderHandB();
+  }
+  function renderHandB() {
+    var el = $('handB');
+    el.innerHTML = '';
+    if (!prac) {
+      el.innerHTML = '<span class="empty">点"发一手牌"开始</span>';
+    } else {
+      for (var i = 0; i < T; i++) {
+        for (var k = 0; k < prac[i]; k++) {
+          (function (i) {
+            var c = document.createElement('span');
+            c.className = 'chip ' + suitOf(i);
+            c.textContent = KD.tileName(i);
+            if (!pracDone) {
+              c.title = '点它 = 你想打这张';
+              c.onclick = function () { practicePick(i); };
+            }
+            el.appendChild(c);
+          })(i);
+        }
+      }
+    }
+    $('scoreB').textContent = stat.t ? '练习统计：' + stat.ok + ' / ' + stat.t + ' 与推荐一致' : '';
+  }
+  function practicePick(t) {
+    if (pracDone) return;
+    pracDone = true;
+    $('nextBtn').disabled = false;
+    var res = KD.recommend(prac, 0);
+    var best = res.discards[0];
+    var mine = res.discards.find(function (d) { return d.tile === t; });
+    var same = mine && mine.tier === best.tier && mine.effTotal === best.effTotal && mine.ronCount === best.ronCount;
+    stat.t++; if (same) stat.ok++;
+    var html = '<div class="rescard ' + (same ? 'best' : '') + '"><h3>' + (same ? '✓ 与推荐一致' : '✗ 和推荐不同') + '</h3>' +
+      '<p>你打了 <b>' + KD.tileName(t) + '</b>：' + descShort(mine) +
+      '；推荐 <b>' + KD.tileName(best.tile) + '</b>：' + descShort(best) + (same ? '（并列等效）' : '') + '</p>' +
+      '<p class="small">推荐理由：</p>' + itemHtml(best) + '</div>';
+    $('outB').innerHTML = html;
+    renderHandB();
+  }
+  $('dealBtn').onclick = deal;
+  $('nextBtn').onclick = deal;
+
+  /* ---------- Tab ---------- */
+  $('tabA').onclick = function () { showTab('A'); };
+  $('tabB').onclick = function () { showTab('B'); };
+  $('tabC').onclick = function () { showTab('C'); };
+  function showTab(id) {
+    ['A', 'B', 'C'].forEach(function (x) {
+      $('panel' + x).hidden = x !== id;
+      $('tab' + x).classList.toggle('on', x === id);
+    });
+  }
+
+  /* ---------- 初始化 ---------- */
+  renderPicker(); renderHand();
+  var st = KD.selfTest();
+  console.log('[牌理练习器] 引擎自检 ' + st.passed + '/' + st.total + ' 通过');
+})();
+</script>
+<script src="sim-ui.js"></script>
+</body>
+</html>
